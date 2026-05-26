@@ -4,48 +4,51 @@
 ![Oracle Cloud](https://img.shields.io/badge/Oracle%20Cloud-Always%20Free-red?style=for-the-badge&logo=oracle)
 ![Docker](https://img.shields.io/badge/Docker-Mailu%20Stack-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-DNS%20%26%20Tunnel-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
-![Debian](https://img.shields.io/badge/OS-Debian%20or%20Ubuntu-A81D33?style=for-the-badge&logo=debian&logoColor=white)
+![Debian](https://img.shields.io/badge/OS-Debian%20%2F%20Ubuntu-A81D33?style=for-the-badge&logo=debian&logoColor=white)
 
-> Eine komplette, strukturierte Anleitung für einen eigenen Mailserver mit **Mailu**, **Oracle Cloud Always Free**, **Cloudflare DNS**, **Docker**, **Portainer** und **cloudflared**.
-
-🇬🇧 [English version → README_EN.md](README_EN.md)
+> Komplette Schritt-für-Schritt-Anleitung für einen eigenen Mailserver mit **Mailu**, **Oracle Cloud Always Free**, **Cloudflare DNS**, **Docker**, **Portainer** und **cloudflared**.
 
 ---
 
 ## 🗂️ Inhalt
 
-- [🎯 Zielbild](#-zielbild)
-- [🧰 Voraussetzungen](#-voraussetzungen)
-- [🪪 1. Anmelden bei Oracle Cloud](#-1-anmelden-bei-oracle-cloud)
-- [🖥️ 2. VM in Oracle Cloud erstellen](#-2-vm-in-oracle-cloud-erstellen)
-- [🔐 3. Per SSH verbinden](#-3-per-ssh-verbinden)
-- [🌐 4. Oracle Netzwerk vorbereiten](#-4-oracle-netzwerk-vorbereiten)
-- [⚙️ 5. Linux-Grundsystem vorbereiten](#-5-linux-grundsystem-vorbereiten)
-- [🔥 6. Firewall auf der VM öffnen](#-6-firewall-auf-der-vm-öffnen)
-- [🐳 7. Docker und Portainer installieren](#-7-docker-und-portainer-installieren)
-- [☁️ 8. cloudflared Tunnel einrichten](#-8-cloudflared-tunnel-einrichten)
-- [📬 9. Mailu konfigurieren und starten](#-9-mailu-konfigurieren-und-starten)
-- [🌍 10. DNS in Cloudflare setzen](#-10-dns-in-cloudflare-setzen)
-- [📮 11. Port 25 freischalten lassen](#-11-port-25-freischalten-lassen)
-- [🧪 12. Testen und prüfen](#-12-testen-und-prüfen)
-- [🛠️ 13. Troubleshooting](#-13-troubleshooting)
-- [📊 Ressourcenübersicht](#-ressourcenübersicht)
+1. [🎯 Zielbild & Architektur](#-zielbild--architektur)
+2. [🧰 Voraussetzungen](#-voraussetzungen)
+3. [🪪 Anmelden bei Oracle Cloud](#-anmelden-bei-oracle-cloud)
+4. [🖥️ VM erstellen (Ampere A1 Flex)](#️-vm-erstellen-ampere-a1-flex)
+5. [⚠️ Out of Capacity lösen](#️-out-of-capacity-lösen)
+6. [🔐 Per SSH verbinden](#-per-ssh-verbinden)
+7. [🌐 Oracle Security List konfigurieren](#-oracle-security-list-konfigurieren)
+8. [⚙️ Linux Grundsystem vorbereiten](#️-linux-grundsystem-vorbereiten)
+9. [🔥 iptables Firewall öffnen](#-iptables-firewall-öffnen)
+10. [🐳 Docker & Portainer installieren](#-docker--portainer-installieren)
+11. [☁️ cloudflared Tunnel einrichten](#️-cloudflared-tunnel-einrichten)
+12. [📬 Mailu konfigurieren & starten](#-mailu-konfigurieren--starten)
+13. [🌍 DNS in Cloudflare setzen](#-dns-in-cloudflare-setzen)
+14. [📮 Port 25 bei Oracle freischalten](#-port-25-bei-oracle-freischalten)
+15. [🧪 Testen & prüfen](#-testen--prüfen)
+16. [🛠️ Troubleshooting](#️-troubleshooting)
+17. [📊 RAM-Übersicht](#-ram-übersicht)
 
 ---
 
-## 🎯 Zielbild
+## 🎯 Zielbild & Architektur
 
-![Architektur](assets/architecture.png)
+```
+Oracle Cloud Free Tier (ARM, Ampere A1)
+└── Docker Engine
+    ├── Portainer              → Admin UI (via cloudflared)
+    ├── cloudflared            → Sicherer Tunnel für Admin-UIs
+    └── Mailu Stack
+        ├── Postfix            SMTP
+        ├── Dovecot            IMAP
+        ├── Rspamd             Spam-Filter
+        ├── ClamAV             Virenscanner
+        └── Roundcube          Webmailer (optional)
+```
 
-Am Ende läuft dein Setup so:
-
-- ☁️ **Oracle Cloud Free Tier** mit ARM-VM `VM.Standard.A1.Flex`
-- 🐳 **Docker** als Laufzeitplattform
-- 📦 **Portainer** für Stack-Verwaltung
-- 📬 **Mailu** als Mailserver-Stack
-- 🔒 **cloudflared** für Admin-UIs ohne offene Webports
-- 🌐 **Cloudflare DNS** für A, MX, SPF, DKIM, DMARC
-- 📨 Direkter Mailverkehr via SMTP / IMAP über die Oracle-IP
+- 🔒 **Admin-UIs** sind nur via cloudflared Tunnel erreichbar (kein offener Port)
+- 📨 **SMTP / IMAP** gehen direkt über die Oracle Public IP
 
 ---
 
@@ -53,60 +56,86 @@ Am Ende läuft dein Setup so:
 
 | Bereich | Empfehlung |
 |---|---|
-| Instanztyp | `VM.Standard.A1.Flex` |
-| CPU / RAM | 2 OCPU / 4 GB RAM |
-| OS | Debian 12 oder Ubuntu LTS |
+| Cloud | Oracle Cloud Always Free |
+| Instanztyp | `VM.Standard.A1.Flex` (Ampere ARM) |
+| CPU / RAM | 2 OCPU / 4 GB |
+| OS | Debian 12 oder Ubuntu 22.04 LTS |
 | Storage | 50 GB Boot Volume |
-| Maildomain | `mail.deinedomain.de` |
-| DNS | Cloudflare, Proxy beim Mail-Record **aus** |
+| Domain | z.B. `deinedomain.de` |
+| DNS | Cloudflare |
+| SSH-Key | Ed25519 empfohlen |
 
 ---
 
-## 🪪 1. Anmelden bei Oracle Cloud
+## 🪪 Anmelden bei Oracle Cloud
 
-1. Öffne [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/).
-2. Melde dich mit deinem Oracle-Konto an.
-3. Nach dem Login landest du im **OCI Dashboard**.
+1. [https://cloud.oracle.com](https://cloud.oracle.com) öffnen und einloggen.
+2. Im **OCI Dashboard** oben rechts die **Region** prüfen.
+3. Frankfurt (`eu-frankfurt-1`) ist geografisch nah, aber oft ausgelastet.
 
-> 💡 **Tipp:** Frankfurt ist naheliegend, aber oft ausgelastet.
-
----
-
-## 🖥️ 2. VM in Oracle Cloud erstellen
-
-### 2.1 Compute öffnen
-
-1. Auf **☰ Menü** klicken → **Compute → Instances**
-2. Auf **Create instance** klicken
-
-### 2.2 Image und Shape
-
-1. Bei **Image and shape** auf **Edit** klicken
-2. Image: **Debian 12** oder **Ubuntu LTS**
-3. Shape: Kategorie **Ampere** → **VM.Standard.A1.Flex**
-4. Ressourcen: **2 OCPU**, **4 GB RAM**
-
-> ⚠️ **Out of Capacity?**
-> - Availability Domain wechseln
-> - Auf **Pay As You Go** upgraden (bleibt kostenlos bei Free-Ressourcen)
-> - Retry-Script verwenden: [hitrov/oci-arm-host-capacity](https://github.com/hitrov/oci-arm-host-capacity)
-
-### 2.3 Netzwerk & SSH
-
-1. VCN mit **Public Subnet** verwenden
-2. **Assign public IPv4 address** aktivieren
-3. SSH-Key einfügen: Inhalt von `~/.ssh/id_ed25519.pub`
-4. Auf **Create** klicken, auf Status **Running** warten
+> 💡 Noch kein Konto? [https://www.oracle.com/cloud/free/](https://www.oracle.com/cloud/free/) – Always Free benötigt eine Kreditkarte zur Verifizierung, es wird nichts berechnet.
 
 ---
 
-## 🔐 3. Per SSH verbinden
+## 🖥️ VM erstellen (Ampere A1 Flex)
+
+### Schritt 1 – Compute öffnen
+
+1. Links oben **☰ Menü → Compute → Instances**.
+2. Auf **Create instance** klicken.
+
+### Schritt 2 – Name & Compartment
+
+- **Name:** `mail-server`
+- **Compartment:** Standard oder eigenes
+
+### Schritt 3 – Image & Shape
+
+1. Bei **Image and shape** auf **Edit** klicken.
+2. **Image:** Debian 12 oder Ubuntu 22.04.
+3. **Shape → Ampere → VM.Standard.A1.Flex**:
+   - OCPU: **2**
+   - RAM: **4 GB**
+
+### Schritt 4 – Netzwerk
+
+- **VCN:** neu anlegen oder vorhandene nutzen.
+- **Subnet:** Public Subnet.
+- **Public IPv4:** ✅ aktivieren.
+
+### Schritt 5 – SSH-Key
+
+- Option **Paste public keys** wählen.
+- Inhalt von `~/.ssh/id_ed25519.pub` einfügen.
+
+### Schritt 6 – Erstellen
+
+- **Create** klicken und warten bis Status **Running**.
+- Öffentliche IP notieren.
+
+---
+
+## ⚠️ Out of Capacity lösen
+
+| Lösung | Aufwand | Erfolgsrate |
+|---|---|---|
+| Später erneut versuchen | Niedrig | Mittel |
+| Andere Availability Domain | Niedrig | Mittel |
+| Auf **Pay As You Go** upgraden, nur Free-Ressourcen nutzen | Mittel | Hoch |
+| [Retry-Script](https://github.com/hitrov/oci-arm-host-capacity) | Mittel | Sehr hoch |
+
+> 💡 **Empfehlung:** Pay As You Go Upgrade + Budget-Alert auf 1 $ setzen. Oracle schaltet oft sofort Kapazität frei. Free-Ressourcen bleiben kostenlos.
+
+---
+
+## 🔐 Per SSH verbinden
 
 ```bash
+chmod 600 ~/.ssh/id_ed25519
 ssh -i ~/.ssh/id_ed25519 ubuntu@<PUBLIC_IP>
 ```
 
-| Image | Benutzer |
+| Image | Benutzername |
 |---|---|
 | Ubuntu | `ubuntu` |
 | Debian | `debian` |
@@ -114,9 +143,12 @@ ssh -i ~/.ssh/id_ed25519 ubuntu@<PUBLIC_IP>
 
 ---
 
-## 🌐 4. Oracle Netzwerk vorbereiten
+## 🌐 Oracle Security List konfigurieren
 
-Im OCI-Webinterface: Instanz → Subnet → Security List → **Ingress Rules** hinzufügen:
+Im OCI-Webinterface:
+
+1. Zur Instanz → **Subnet** klicken → **Security List** öffnen.
+2. Unter **Ingress Rules** hinzufügen (Source: `0.0.0.0/0`, Protocol: TCP):
 
 | Port | Zweck |
 |---|---|
@@ -130,7 +162,7 @@ Im OCI-Webinterface: Instanz → Subnet → Security List → **Ingress Rules** 
 
 ---
 
-## ⚙️ 5. Linux-Grundsystem vorbereiten
+## ⚙️ Linux Grundsystem vorbereiten
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -141,13 +173,15 @@ echo "127.0.0.1 mail.deinedomain.de mail localhost" | sudo tee -a /etc/hosts
 
 ---
 
-## 🔥 6. Firewall auf der VM öffnen
+## 🔥 iptables Firewall öffnen
 
 ```bash
 sudo vim /etc/iptables/rules.v4
 ```
 
-```text
+Inhalt:
+
+```
 *filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
@@ -170,7 +204,9 @@ sudo iptables-restore < /etc/iptables/rules.v4
 
 ---
 
-## 🐳 7. Docker und Portainer installieren
+## 🐳 Docker & Portainer installieren
+
+### Docker
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings
@@ -187,9 +223,10 @@ sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
+# Neu einloggen danach!
 ```
 
-> 🔁 Danach neu einloggen.
+### Portainer
 
 ```bash
 sudo mkdir -p /opt/portainer
@@ -204,9 +241,14 @@ docker run -d \
 
 ---
 
-## ☁️ 8. cloudflared Tunnel einrichten
+## ☁️ cloudflared Tunnel einrichten
 
-Datei `/etc/cloudflared/config.yml`:
+```bash
+cloudflared tunnel login
+cloudflared tunnel create mail-admin
+```
+
+`/etc/cloudflared/config.yml`:
 
 ```yaml
 tunnel: mail-admin
@@ -223,23 +265,35 @@ ingress:
 ```
 
 ```bash
-sudo systemctl enable cloudflared && sudo systemctl start cloudflared
+sudo systemctl enable cloudflared
+sudo systemctl start cloudflared
 ```
 
 ---
 
-## 📬 9. Mailu konfigurieren und starten
+## 📬 Mailu konfigurieren & starten
+
+### 1. Verzeichnis anlegen
 
 ```bash
-sudo mkdir -p /mailu && sudo chown $USER:$USER /mailu && cd /mailu
+sudo mkdir -p /mailu
+sudo chown $USER:$USER /mailu
+cd /mailu
 ```
 
-1. Öffne [https://setup.mailu.io](https://setup.mailu.io)
-2. Flavor: **Docker Compose**
-3. Main domain: `deinedomain.de` · Hostname: `mail.deinedomain.de`
-4. TLS: **Let's Encrypt** aktivieren
-5. Dienste: ✅ Postfix ✅ Dovecot ✅ Rspamd ✅ ClamAV ➕ Roundcube optional
-6. `docker-compose.yml` und `mailu.env` nach `/mailu` kopieren
+### 2. Konfiguration erzeugen
+
+[https://setup.mailu.io](https://setup.mailu.io) im Browser öffnen:
+
+- Flavor: **Docker Compose**
+- Domain: `deinedomain.de`
+- Hostname: `mail.deinedomain.de`
+- TLS: **Let's Encrypt**
+- Komponenten: ✅ Postfix, Dovecot, Rspamd, ClamAV, optional Roundcube
+
+`docker-compose.yml` und `mailu.env` nach `/mailu` kopieren.
+
+### 3. Stack starten
 
 ```bash
 cd /mailu
@@ -248,84 +302,101 @@ docker compose up -d
 docker ps
 ```
 
-Admin-User anlegen:
+### 4. Admin-User anlegen
 
 ```bash
-docker compose exec admin flask mailu admin admin deinedomain.de 'SuperGeheimesPasswort'
+docker compose exec admin flask mailu admin \
+  admin deinedomain.de 'SuperGeheimesPasswort'
 ```
 
 ---
 
-## 🌍 10. DNS in Cloudflare setzen
+## 🌍 DNS in Cloudflare setzen
 
-> ⚠️ Der `mail`-A-Record darf **nicht** über Cloudflare proxied sein → **graue Wolke**!
+> ⚠️ Der `mail`-Record muss **graue Wolke** (DNS only, kein Proxy) haben!
 
 | Typ | Name | Wert | Hinweis |
 |---|---|---|---|
-| A | `mail` | `<Oracle Public IP>` | Proxy **aus** |
+| A | `mail` | `<Oracle IP>` | Proxy **aus** |
 | MX | `@` | `mail.deinedomain.de` | Prio 10 |
 | TXT | `@` | `v=spf1 mx ~all` | SPF |
 | TXT | `_dmarc` | `v=DMARC1; p=quarantine; pct=25` | DMARC |
 | TXT | `dkim._domainkey` | aus Mailu Admin | DKIM |
 
----
-
-## 📮 11. Port 25 freischalten lassen
-
-Oracle Support → Ticket → **SMTP Port 25 Unblock Request**  
-Kurz begründen: privater Mailserver, SPF/DKIM/DMARC aktiv, kein Bulk Mailing.
+DKIM aus Mailu Admin holen: Domain öffnen → DKIM-Key anzeigen → in Cloudflare eintragen.
 
 ---
 
-## 🧪 12. Testen und prüfen
+## 📮 Port 25 bei Oracle freischalten
+
+1. Oracle Support öffnen → Ticket anlegen.
+2. Betreff: **SMTP Port 25 Unblock Request**.
+3. Begründung: privater Mailserver, SPF/DKIM/DMARC aktiv, kein Spam/Bulk-Mailing.
+
+> ⏳ Ohne Freischaltung gehen ausgehende Mails zu externen Providern nicht an.
+
+---
+
+## 🧪 Testen & prüfen
+
+### Mailclient einrichten
 
 | Dienst | Server | Port | Sicherheit |
 |---|---|---|---|
 | IMAP | `mail.deinedomain.de` | 993 | SSL/TLS |
 | SMTP | `mail.deinedomain.de` | 587 | STARTTLS |
 
+### Zustellbarkeit prüfen
+
 ```bash
-cd /mailu && docker compose logs -f front postfix rspamd
+# Testmail an mail-tester.com schicken und Score checken
+# Logs live beobachten:
+cd /mailu
+docker compose logs -f front postfix rspamd
 ```
 
-Zustellbarkeit testen: [https://mail-tester.com](https://mail-tester.com)
+---
+
+## 🛠️ Troubleshooting
+
+| Problem | Ursache | Lösung |
+|---|---|---|
+| Out of Capacity | Ampere-Kapazität ausgelastet | Pay As You Go Upgrade, Retry-Script |
+| Let's Encrypt schlägt fehl | Port 80/443 zu | Security List + iptables prüfen |
+| SMTP/IMAP geht nicht | Ports zu oder Proxy an | Security List, iptables, Cloudflare-Proxy aus |
+| Mails im Spam | PTR/DKIM fehlt | Reverse DNS, DKIM, DMARC nachrüsten |
+| Port 25 ausgehend geblockt | Oracle Default | Support-Ticket stellen |
 
 ---
 
-## 🛠️ 13. Troubleshooting
-
-| Problem | Lösung |
-|---|---|
-| Out of Capacity | Andere AD, PAYG-Upgrade, Retry-Script |
-| Let's Encrypt fehlt | Port 80/443 offen? DNS korrekt? Proxy aus? |
-| SMTP/IMAP geht nicht | Security List, iptables, Container laufen? |
-| Mails im Spam | PTR setzen, SPF/DKIM/DMARC prüfen |
-
----
-
-## 📊 Ressourcenübersicht
+## 📊 RAM-Übersicht
 
 | Dienst | RAM |
 |---|---:|
-| Mailu gesamt | ~1.5 GB |
+| Mailu gesamt | ~1.500 MB |
 | Portainer | ~100 MB |
 | cloudflared | ~50 MB |
 | System + Docker | ~400 MB |
-| **Gesamt** | **~2.0 GB** ✅ |
+| **Gesamt** | **~2.050 MB** ✅ |
+
+✅ Passt auf eine 4-GB-A1-Instanz.
 
 ---
 
 ## ✅ Checkliste
 
-- [ ] Oracle-VM läuft
+- [ ] Oracle-VM läuft, Public IP notiert
 - [ ] SSH funktioniert
-- [ ] Security List gesetzt
-- [ ] iptables gesetzt
+- [ ] Security List konfiguriert (7 Ports)
+- [ ] iptables konfiguriert
 - [ ] Docker läuft
-- [ ] Portainer erreichbar
+- [ ] Portainer erreichbar (via cloudflared)
 - [ ] cloudflared aktiv
-- [ ] Mailu läuft
-- [ ] DNS gesetzt
+- [ ] Mailu Stack läuft
+- [ ] DNS gesetzt (A, MX, SPF, DMARC, DKIM)
 - [ ] Port 25 freigegeben
-- [ ] DKIM eingetragen
-- [ ] Testmail erfolgreich
+- [ ] Testmail erfolgreich (mail-tester.com Score ≥ 8/10)
+
+---
+
+*Setup erstellt mit ❤️ und KI-Unterstützung*

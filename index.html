@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>hAI.OracleMailu – Mailu on Oracle Cloud Free Tier</title>
+  <meta name="description" content="Complete guide: self-hosted mail server with Mailu on Oracle Cloud Always Free, Docker, Portainer, Cloudflare and cloudflared."/>
+  <style>
+    :root{--bg:#0b1020;--card:#121933;--card2:#182244;--text:#eef2ff;--muted:#b7c2ff;--accent:#6ea8fe;--accent2:#f97316;--border:rgba(255,255,255,0.08);--shadow:0 10px 30px rgba(0,0,0,0.25)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at top right,#1d4ed8 0%,#0b1020 45%),var(--bg);color:var(--text);line-height:1.6}
+    a{color:#93c5fd;text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 64px}
+    .hero{background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:24px;padding:32px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}
+    .badges img{margin:4px 8px 4px 0;vertical-align:middle}
+    h1{font-size:2.4rem;margin:0 0 12px;line-height:1.2}
+    h2{font-size:1.6rem;margin-top:0}
+    p.lead{font-size:1.1rem;color:var(--muted);max-width:900px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:24px}
+    .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+    .card h3{margin-top:0}
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}
+    .step{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:18px;padding:18px}
+    .step span{display:inline-block;width:34px;height:34px;text-align:center;line-height:34px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#60a5fa);color:#08111f;font-weight:700;margin-bottom:10px}
+    .links{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+    .btn{display:inline-block;padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3b82f6);color:white;font-weight:700;box-shadow:var(--shadow)}
+    .btn.alt{background:linear-gradient(135deg,var(--accent2),#ea580c)}
+    .btn.gh{background:linear-gradient(135deg,#374151,#111827)}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;margin:4px 6px 4px 0;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--muted);font-size:.92rem}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 12px;border:1px solid var(--border);text-align:left}
+    th{background:rgba(255,255,255,0.06)}
+    footer{margin-top:36px;color:var(--muted);font-size:.95rem;text-align:center}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <div class="badges">
+      <img src="https://img.shields.io/badge/Oracle-Always%20Free-C74634?style=for-the-badge&logo=oracle&logoColor=white" alt="Oracle"/>
+      <img src="https://img.shields.io/badge/Mailu-Docker%20Mail%20Server-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Mailu"/>
+      <img src="https://img.shields.io/badge/Cloudflare-DNS%20%26%20Tunnel-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare"/>
+      <img src="https://img.shields.io/badge/GitHub%20Pages-Deployed-111827?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Pages"/>
+    </div>
+    <h1>📬 hAI.OracleMailu</h1>
+    <p class="lead">Komplette Anleitung für einen selbst gehosteten Mailserver mit Mailu auf Oracle Cloud Always Free – mit Docker, Portainer, cloudflared und Cloudflare DNS. Inklusive englischer Doku.</p>
+    <div>
+      <span class="pill">🖥️ Oracle A1 Flex ARM</span>
+      <span class="pill">🐳 Docker Compose</span>
+      <span class="pill">🔒 cloudflared Tunnel</span>
+      <span class="pill">🌐 Cloudflare DNS</span>
+      <span class="pill">📨 SMTP / IMAP</span>
+      <span class="pill">🛡️ SPF / DKIM / DMARC</span>
+      <span class="pill">⚡ Always Free</span>
+    </div>
+    <div class="links">
+      <a class="btn" href="README.md">🇩🇪 README (DE)</a>
+      <a class="btn alt" href="README_EN.md">🇬🇧 README (EN)</a>
+      <a class="btn gh" href="https://github.com/jbkunama1/hAI.OracleMailu">📦 GitHub Repo</a>
+    </div>
+  </section>
+
+  <section class="grid" style="margin-top:28px">
+    <article class="card">
+      <h3>🚀 Was enthalten ist</h3>
+      <ul>
+        <li>Oracle A1 Flex VM erstellen (Schritt für Schritt)</li>
+        <li>Out-of-Capacity Problem lösen</li>
+        <li>Docker, Portainer, cloudflared Setup</li>
+        <li>Mailu als Docker Stack deployen</li>
+        <li>Cloudflare DNS mit SPF, DKIM, DMARC</li>
+        <li>Port 25 Freischaltung bei Oracle</li>
+        <li>Zustellbarkeit testen und optimieren</li>
+      </ul>
+    </article>
+    <article class="card">
+      <h3>📊 Ressourcennutzung</h3>
+      <table>
+        <tr><th>Dienst</th><th>RAM</th></tr>
+        <tr><td>Mailu gesamt</td><td>~1.500 MB</td></tr>
+        <tr><td>Portainer</td><td>~100 MB</td></tr>
+        <tr><td>cloudflared</td><td>~50 MB</td></tr>
+        <tr><td>System + Docker</td><td>~400 MB</td></tr>
+        <tr><td><strong>Gesamt</strong></td><td><strong>~2.050 MB ✅</strong></td></tr>
+      </table>
+    </article>
+    <article class="card">
+      <h3>⚠️ Wichtige Hinweise</h3>
+      <ul>
+        <li>Cloudflare-Proxy beim <code>mail</code>-Record <strong>deaktivieren</strong></li>
+        <li>Oracle blockiert Port 25 standardmäßig → Ticket nötig</li>
+        <li>PTR, SPF, DKIM und DMARC für gute Zustellung essenziell</li>
+        <li>A1 Flex: bei Out of Capacity → Pay As You Go Trick</li>
+      </ul>
+    </article>
+  </section>
+
+  <section class="card" style="margin-top:28px">
+    <h2>🪜 Setup-Ablauf</h2>
+    <div class="steps">
+      <div class="step"><span>1</span><h3>Anmelden</h3><p>Oracle Cloud Account, Region prüfen.</p></div>
+      <div class="step"><span>2</span><h3>VM erstellen</h3><p>A1 Flex ARM, 2 OCPU, 4 GB, Debian/Ubuntu, Public IP, SSH-Key.</p></div>
+      <div class="step"><span>3</span><h3>SSH &amp; System</h3><p>Verbinden, Updates, Hostname, Basis-Tools.</p></div>
+      <div class="step"><span>4</span><h3>Netzwerk</h3><p>Oracle Security List + iptables: 7 Ports öffnen.</p></div>
+      <div class="step"><span>5</span><h3>Docker</h3><p>Docker Engine + Portainer installieren.</p></div>
+      <div class="step"><span>6</span><h3>Tunnel</h3><p>cloudflared für sichere Admin-Zugänge.</p></div>
+      <div class="step"><span>7</span><h3>Mailu</h3><p>Konfiguration via setup.mailu.io, Stack starten.</p></div>
+      <div class="step"><span>8</span><h3>DNS &amp; Tests</h3><p>Cloudflare DNS setzen, Port 25 freischalten, Testmail.</p></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:28px">
+    <h2>🌐 DNS-Konfiguration (Cloudflare)</h2>
+    <table>
+      <tr><th>Typ</th><th>Name</th><th>Wert</th><th>Hinweis</th></tr>
+      <tr><td>A</td><td>mail</td><td>&lt;Oracle IP&gt;</td><td>⚠️ Proxy <strong>aus</strong></td></tr>
+      <tr><td>MX</td><td>@</td><td>mail.deinedomain.de</td><td>Prio 10</td></tr>
+      <tr><td>TXT</td><td>@</td><td>v=spf1 mx ~all</td><td>SPF</td></tr>
+      <tr><td>TXT</td><td>_dmarc</td><td>v=DMARC1; p=quarantine; pct=25</td><td>DMARC</td></tr>
+      <tr><td>TXT</td><td>dkim._domainkey</td><td>aus Mailu Admin</td><td>DKIM</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    hAI.OracleMailu · erstellt mit ❤️ und KI-Unterstützung ·
+    <a href="https://github.com/jbkunama1/hAI.OracleMailu">github.com/jbkunama1/hAI.OracleMailu</a>
+  </footer>
+</div>
+</body>
+</html>
